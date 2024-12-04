@@ -1,0 +1,6 @@
+async-timeout==5.0.1
+falcon==4.0.2
+gunicorn==23.0.0
+kafka-python==2.0.2
+packaging==24.2
+redis==5.2.0

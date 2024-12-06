@@ -1,21 +1,31 @@
+import logging
 import json
 
 import falcon
 
-from auctionz.container.config import kafka_producer, redis
-from auctionz.util.constants import TOPIC_NAME
+from auctionz.container.config import kafka_consumer, kafka_producer, redis
+from auctionz.util.constants import AUCTION_BID
 
 
 class BidGet:
     def on_get(self, req, resp, item):
         response = {}
 
-        if bid := redis.get(item):
-            response['message'] = f'The bid is set for: {str(bid)}'
-        else:
-            response['message'] = f'No bid found for item {item}'
+        try:
+            if bid := float(redis.get(item)):
+                for message in kafka_consumer:
+                    if message.key == item:
+                        if float(message.value) > float(bid):
+                            bid = float(message.value)
 
-        resp.text = json.dumps(response, ensure_ascii=False)
+                redis.set(item, bid)
+                response['message'] = f'The bid for item {item} is ${bid}'
+                resp.text = json.dumps(response, ensure_ascii=False)
+            else:
+                response['message'] = f'No bid found for item {item}'
+        except Exception as e:
+            resp.status = falcon.HTTP_400
+            resp.media = {"error": str(e)}
 
 class BidAdd:
     def on_post(self, req, resp):
@@ -35,7 +45,7 @@ class BidAdd:
             }
 
             kafka_producer.send(
-                topic=TOPIC_NAME,
+                topic=AUCTION_BID,
                 key=item.encode('utf-8'),
                 value=message
             )

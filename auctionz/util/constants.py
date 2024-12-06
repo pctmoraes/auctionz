@@ -1,2 +1,2 @@
-AUCTION = '/auction'
-TOPIC_NAME = 'auction-bid'
+AUCTION = '/auction/bid'
+AUCTION_BID = 'auction-bid'
